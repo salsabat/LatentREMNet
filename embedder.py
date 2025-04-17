@@ -26,7 +26,3 @@ def add_dream(text: str):
     row = {"id": new_id, "text": text, "vec": vec.tolist()}
     df = pd.concat([df, pd.DataFrame([row])])
     save(df)
-
-
-def get_all():
-    return load()
