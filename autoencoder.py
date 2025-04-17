@@ -8,6 +8,7 @@ from embedder import load
 
 
 class DreamAutoencoder(nn.Module):
+
     def __init__(self):
         super().__init__()
         self.encoder = nn.Sequential(
@@ -24,6 +25,7 @@ class DreamAutoencoder(nn.Module):
     def forward(self, x):
         z = self.encoder(x)
         x_recon = self.decoder(z)
+
         return x_recon, z
 
 
@@ -39,9 +41,11 @@ def train_autoencoder(epochs, lr, batch_size):
     model = DreamAutoencoder()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     loss_fn = nn.MSELoss()
+
     for epoch in range(epochs):
         train_loss = 0.0
         model.train()
+
         for batch in train_loader:
             x = batch[0]
             recon, z = model(x)
@@ -60,7 +64,8 @@ def train_autoencoder(epochs, lr, batch_size):
                 loss = loss_fn(recon, x)
                 val_loss += loss.item() * x.size(0)
         val_loss /= len(val_loader.dataset)
-        print(f'epoch {epoch}: train {train_loss:.6f} val {val_loss:.6f}')
+        # print(f'epoch {epoch}: train {train_loss:.6f} val {val_loss:.6f}')
+
     Path('models').mkdir(exist_ok=True)
     torch.save(model.state_dict(), 'models/autoencoder.pt')
 
@@ -69,6 +74,7 @@ def load_model(path):
     model = DreamAutoencoder()
     model.load_state_dict(torch.load(path))
     model.eval()
+
     return model
 
 
@@ -77,6 +83,7 @@ def encode_vector(vec):
     x = torch.from_numpy(np.array(vec, dtype=np.float32))
     recon, z = model(x.unsqueeze(0))
     loss = nn.MSELoss()(recon, x.unsqueeze(0)).item()
+
     return z.detach().numpy().flatten(), loss
 
 
@@ -84,11 +91,14 @@ def encode_all():
     df = load()
     latents = []
     losses = []
+
     for vec in df['vec']:
         latent, loss = encode_vector(vec)
         latents.append(latent)
         losses.append(loss)
+
     df['latent_x'] = [l[0] for l in latents]
     df['latent_y'] = [l[1] for l in latents]
     df['loss'] = losses
+
     return df
