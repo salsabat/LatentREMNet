@@ -2,7 +2,6 @@ import ast
 import pandas as pd
 from pathlib import Path
 from sentence_transformers import SentenceTransformer
-from autoencoder import train_autoencoder
 import math
 
 
@@ -40,6 +39,8 @@ def add_dream(text: str):
     if len(df) % 15 == 0:
         batches_per_epoch = max(1, math.ceil(len(df) / BATCH_SIZE))
         epochs = max(1, math.ceil(TARGET_UPDATES / batches_per_epoch))
+
+        from autoencoder import train_autoencoder
         train_autoencoder(epochs, LR, BATCH_SIZE)
 
     save(df)
