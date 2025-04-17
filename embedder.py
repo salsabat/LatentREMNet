@@ -21,6 +21,8 @@ def save(df: pd.DataFrame):
 
 def add_dream(text: str):
     df = load()
+    if text in df["text"].values:
+        return
     new_id = len(df) + 1
     vec = model.encode(text, normalize_embeddings=True)
     row = {"id": new_id, "text": text, "vec": vec.tolist()}
