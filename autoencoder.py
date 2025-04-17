@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, TensorDataset
+from sklearn.model_selection import train_test_split
 import numpy as np
 from pathlib import Path
 from embedder import load
@@ -29,19 +30,37 @@ class DreamAutoencoder(nn.Module):
 def train_autoencoder(epochs, lr, batch_size):
     df = load()
     vecs = np.stack(df['vec'].values).astype(np.float32)
-    loader = DataLoader(TensorDataset(torch.from_numpy(vecs)),
-                        batch_size=batch_size, shuffle=True)
+    train_vecs, val_vecs = train_test_split(
+        vecs, test_size=0.2, random_state=42)
+    train_loader = DataLoader(TensorDataset(torch.from_numpy(
+        train_vecs)), batch_size=batch_size, shuffle=True)
+    val_loader = DataLoader(TensorDataset(
+        torch.from_numpy(val_vecs)), batch_size=batch_size)
     model = DreamAutoencoder()
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     loss_fn = nn.MSELoss()
     for epoch in range(epochs):
-        for batch in loader:
+        train_loss = 0.0
+        model.train()
+        for batch in train_loader:
             x = batch[0]
             recon, z = model(x)
             loss = loss_fn(recon, x)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+            train_loss += loss.item() * x.size(0)
+        train_loss /= len(train_loader.dataset)
+        val_loss = 0.0
+        model.eval()
+        with torch.no_grad():
+            for batch in val_loader:
+                x = batch[0]
+                recon, _ = model(x)
+                loss = loss_fn(recon, x)
+                val_loss += loss.item() * x.size(0)
+        val_loss /= len(val_loader.dataset)
+        print(f'epoch {epoch}: train {train_loss:.6f} val {val_loss:.6f}')
     Path('models').mkdir(exist_ok=True)
     torch.save(model.state_dict(), 'models/autoencoder.pt')
 
